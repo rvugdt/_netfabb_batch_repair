@@ -1,12 +1,13 @@
-wp = system:showdirectoryselectdialog(true, true, true)
+wasrepaired = 0;
+wp = system:showdirectoryselectdialog(true, true, true);
 if wp~="" then
-   cp = wp.."_completed\\"
    wp = wp.."\\"
+   cp = wp.."_completed\\"
+   system:logtofile(wp.."log.txt", true)
 else
-    system:messagedlg("directory not selected. script was stopped.")
+    system:messagedlg("directory not selected. script was stopped.");
     return 0
 end;
-wasrepaired = 0
 
 if system:directoryexists(cp) then
        system:log("dir _completed exists")
@@ -17,9 +18,8 @@ end;
 function loadfile (filename)
   path,file,ext = string.match(filename, "(.-)([^\\/]-%.?([^%.\\/]*))$")
   ext = ext:lower()
-  system:log(ext)
   if ext == "stl" then
-  	system:log("stl")
+  	--system:log("stl")
   	return system:loadstl (filename)
   elseif ext == "3ds" then
   	system:log("3ds")
@@ -61,6 +61,7 @@ function loadfile (filename)
     system:log("zpr")
     return system:loadzpr(filename)
   else
+        system:log(filename.." is not mesh file. skipped.")
   	return nil
   end
 end;
@@ -143,27 +144,25 @@ end;
 ]]
 
 local root = tray.root;
---system:logtofile ('LUAoutput.txt');
 xmlfilelist = system:getallfilesindirectory(wp);
-system:log(xmlfilelist.childcount);
---xmlfilelist:savetofile('test.xml');
+system:log(xmlfilelist.childcount.." files");
 numberoffiles = xmlfilelist.childcount;
 for i=0,numberoffiles-1 do
     xmlChild = xmlfilelist:getchildindexed(i);
     filename = xmlChild:getchildvalue ("filename");
     filenamestr = tostring(system:extractfilename(filename));
-    system:log("file, wp,cp >>> "..filenamestr.." "..wp.." "..cp)
     if system:fileexists(cp..filenamestr) then
-	system:log(filenamestr.." exists")
+	system:log(filenamestr.." EXISTS. SKIPPED.")
     else
 	path,file,ext = string.match(filename, "(.-)([^\\/]-%.?([^%.\\/]*))$")
 	mesh = loadfile(filename);
         if mesh ~= nil then
+          system:log("processing "..tostring(i+1).."//"..numberoffiles.." >>> "..filenamestr)
           local traymesh = root:addmesh(mesh);
           traymesh.name = file;
           -- some repair processing there
           local luamesh   = traymesh.mesh;
-	  if not luamesh.isok then
+	  --if not luamesh.isok then
 	     newMesh = luamesh:dupe();
 	     local matrix = traymesh.matrix;
 	     local oldname = traymesh.name;
@@ -178,11 +177,14 @@ for i=0,numberoffiles-1 do
                 newMesh:savetostl(completedfile)
                 wasrepaired = wasrepaired +1
              end;
-          end;
+          --end;
           root:removemesh(traymesh)
+          system:cleargarbage()
         --else
         --  loadcadfile(filename, root);
+        else
+            system:messagedlg("Was repaired "..tostring(wasrepaired).." new files")
+            return nil
         end;
     end;
 end;
-system:messagedlg("Was repaired "..tostring(wasrepaired).." new files")
