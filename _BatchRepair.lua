@@ -3,7 +3,6 @@ wp = system:showdirectoryselectdialog(true, true, true);
 if wp~="" then
    wp = wp.."\\"
    cp = wp.."_completed\\"
-   system:logtofile(wp.."log.txt", true)
 else
     system:messagedlg("directory not selected. script was stopped.");
     return 0
@@ -21,6 +20,7 @@ function loadfile (filename)
   if ext == "stl" then
   	--system:log("stl")
   	return system:loadstl (filename)
+  --[[
   elseif ext == "3ds" then
   	system:log("3ds")
   	return system:load3ds (filename)
@@ -60,8 +60,9 @@ function loadfile (filename)
   elseif ext == "zpr" then
     system:log("zpr")
     return system:loadzpr(filename)
+    ]]
   else
-        system:log(filename.." is not mesh file. skipped.")
+        system:log(filename.." is not valid file. skipped.")
   	return nil
   end
 end;
@@ -145,9 +146,11 @@ end;
 
 local root = tray.root;
 xmlfilelist = system:getallfilesindirectory(wp);
+system:logtofile(wp.."log.txt", true)
 system:log(xmlfilelist.childcount.." files");
 numberoffiles = xmlfilelist.childcount;
 for i=0,numberoffiles-1 do
+    system:cleargarbage()
     xmlChild = xmlfilelist:getchildindexed(i);
     filename = xmlChild:getchildvalue ("filename");
     filenamestr = tostring(system:extractfilename(filename));
@@ -157,7 +160,7 @@ for i=0,numberoffiles-1 do
 	path,file,ext = string.match(filename, "(.-)([^\\/]-%.?([^%.\\/]*))$")
 	mesh = loadfile(filename);
         if mesh ~= nil then
-          system:log("processing "..tostring(i+1).."//"..numberoffiles.." >>> "..filenamestr)
+          system:log("processing "..tostring(i+1).."/"..numberoffiles.." >>> "..filenamestr)
           local traymesh = root:addmesh(mesh);
           traymesh.name = file;
           -- some repair processing there
@@ -179,12 +182,12 @@ for i=0,numberoffiles-1 do
              end;
           --end;
           root:removemesh(traymesh)
-          system:cleargarbage()
         --else
         --  loadcadfile(filename, root);
         else
-            system:messagedlg("Was repaired "..tostring(wasrepaired).." new files")
             return nil
         end;
     end;
 end;
+system:messagedlg("Was repaired "..tostring(wasrepaired).." new files")
+system:log("DONE >>> Was repaired "..tostring(wasrepaired).." new files")
